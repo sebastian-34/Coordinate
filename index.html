@@ -26,7 +26,6 @@
     <button onclick="randomizeTarget()">Randomize Target</button>
   </div>
   <div style="margin-top:10px;">
-    Selected: <span id="selected-point">None</span>
     <button id="submit-btn" disabled>Submit</button>
   </div>
   <div id="result"></div>
@@ -133,7 +132,6 @@
       document.getElementById('target-point').textContent = `(${target.x}, ${target.y})`;
       answered = false;
       selected = null;
-      document.getElementById('selected-point').textContent = 'None';
       document.getElementById('submit-btn').disabled = true;
       clearResult();
       drawGrid();
@@ -151,7 +149,6 @@
       let y = Math.round((height - margin - my) / cellSize + minCoord);
       if (x < minCoord || x > maxCoord || y < minCoord || y > maxCoord) return;
       selected = { x, y };
-      document.getElementById('selected-point').textContent = `(${x}, ${y})`;
       document.getElementById('submit-btn').disabled = false;
       drawGrid();
     }

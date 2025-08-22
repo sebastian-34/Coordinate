@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Coordinate Grid Game</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    #graph-canvas {
+      border: 2px solid #333;
+      background: #fff;
+      display: block;
+      margin-bottom: 20px;
+      cursor: crosshair;
+    }
+    #result { font-size: 1.2em; margin-top: 10px; }
+    #target-point { font-weight: bold; }
+    button { padding: 8px 16px; font-size: 1em; }
+  </style>
+</head>
+<body>
+  <h1>Coordinate Grid Game</h1>
+  <canvas id="graph-canvas" width="800" height="800" style="width: 500px; height: 500px;"></canvas>
+  <div>
+    Target Point: <span id="target-point"></span>
+    <button onclick="randomizeTarget()">Randomize Target</button>
+  </div>
+  <div style="margin-top:10px;">
+    Selected: <span id="selected-point">None</span>
+    <button id="submit-btn" disabled>Submit</button>
+  </div>
+  <div id="result"></div>
+  <script>
+    const minCoord = -10;
+    const maxCoord = 10;
+    const gridSize = maxCoord - minCoord + 1;
+  const canvas = document.getElementById('graph-canvas');
+  const ctx = canvas.getContext('2d');
+  // High-DPI support
+  const displayWidth = 500, displayHeight = 500;
+  canvas.width = 800; canvas.height = 800;
+  canvas.style.width = displayWidth + 'px';
+  canvas.style.height = displayHeight + 'px';
+  const width = canvas.width;
+  const height = canvas.height;
+  const margin = 60;
+  const cellSize = (width - 2 * margin) / (gridSize - 1);
+  let target = { x: 0, y: 0 };
+  let answered = false;
+  let selected = null;
+
+    function drawGrid() {
+      ctx.clearRect(0, 0, width, height);
+      // Draw grid lines
+      ctx.strokeStyle = '#ddd';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < gridSize; i++) {
+        // Vertical
+        let x = margin + i * cellSize;
+        ctx.beginPath();
+        ctx.moveTo(x, margin);
+        ctx.lineTo(x, height - margin);
+        ctx.stroke();
+        // Horizontal
+        let y = margin + i * cellSize;
+        ctx.beginPath();
+        ctx.moveTo(margin, y);
+        ctx.lineTo(width - margin, y);
+        ctx.stroke();
+      }
+      // Draw axes
+      ctx.strokeStyle = '#333';
+      ctx.lineWidth = 2;
+      // Y axis
+      let zeroX = getCanvasX(0);
+      ctx.beginPath();
+      ctx.moveTo(zeroX, margin);
+      ctx.lineTo(zeroX, height - margin);
+      ctx.stroke();
+      // X axis
+      let zeroY = getCanvasY(0);
+      ctx.beginPath();
+      ctx.moveTo(margin, zeroY);
+      ctx.lineTo(width - margin, zeroY);
+      ctx.stroke();
+      // Draw labels
+      ctx.font = '20px Arial';
+      ctx.fillStyle = '#222';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      for (let x = minCoord; x <= maxCoord; x++) {
+        let cx = getCanvasX(x);
+        ctx.fillText(x, cx, height - margin + 8);
+      }
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'middle';
+      for (let y = minCoord; y <= maxCoord; y++) {
+        let cy = getCanvasY(y);
+        ctx.fillText(y, margin - 10, cy);
+      }
+      // Draw selected point
+      if (selected) {
+        drawPoint(selected.x, selected.y, '#1976d2');
+      }
+      // Draw target if answered and incorrect
+      if (answered && selected && (selected.x !== target.x || selected.y !== target.y)) {
+        drawPoint(target.x, target.y, '#ffe082', true);
+      }
+    }
+
+    function drawPoint(x, y, color, isTarget = false) {
+      const cx = getCanvasX(x);
+      const cy = getCanvasY(y);
+      ctx.beginPath();
+      ctx.arc(cx, cy, 14, 0, 2 * Math.PI);
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = isTarget ? '#fbc02d' : '#333';
+      ctx.lineWidth = isTarget ? 4 : 2;
+      ctx.stroke();
+    }
+
+    function getCanvasX(x) {
+      return margin + (x - minCoord) * cellSize;
+    }
+    function getCanvasY(y) {
+      return height - margin - (y - minCoord) * cellSize;
+    }
+
+    function randomizeTarget() {
+      target.x = Math.floor(Math.random() * gridSize) + minCoord;
+      target.y = Math.floor(Math.random() * gridSize) + minCoord;
+      document.getElementById('target-point').textContent = `(${target.x}, ${target.y})`;
+      answered = false;
+      selected = null;
+      document.getElementById('selected-point').textContent = 'None';
+      document.getElementById('submit-btn').disabled = true;
+      clearResult();
+      drawGrid();
+    }
+
+    function handleCanvasClick(evt) {
+      if (answered) return;
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = canvas.width / rect.width;
+      const scaleY = canvas.height / rect.height;
+      const mx = (evt.clientX - rect.left) * scaleX;
+      const my = (evt.clientY - rect.top) * scaleY;
+      // Find nearest grid point
+      let x = Math.round((mx - margin) / cellSize + minCoord);
+      let y = Math.round((height - margin - my) / cellSize + minCoord);
+      if (x < minCoord || x > maxCoord || y < minCoord || y > maxCoord) return;
+      selected = { x, y };
+      document.getElementById('selected-point').textContent = `(${x}, ${y})`;
+      document.getElementById('submit-btn').disabled = false;
+      drawGrid();
+    }
+
+    function handleSubmit() {
+      if (!selected || answered) return;
+      answered = true;
+      if (selected.x === target.x && selected.y === target.y) {
+        showResult('Correct!', true);
+      } else {
+        showResult(`Incorrect. The correct point was (${target.x}, ${target.y})`, false);
+      }
+      drawGrid();
+      document.getElementById('submit-btn').disabled = true;
+    }
+
+    function showResult(msg, correct) {
+      const result = document.getElementById('result');
+      result.textContent = msg;
+      result.style.color = correct ? '#388e3c' : '#d32f2f';
+    }
+
+    function clearResult() {
+      document.getElementById('result').textContent = '';
+    }
+
+  canvas.addEventListener('click', handleCanvasClick);
+  document.getElementById('submit-btn').addEventListener('click', handleSubmit);
+  randomizeTarget();
+  drawGrid();
+  </script>
+</body>
+</html>
